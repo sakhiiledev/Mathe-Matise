@@ -48,11 +48,19 @@ interface User {
   _count?: { enrollments?: number; tutorAssignments?: number };
 }
 
+interface Grade {
+  id: string;
+  label: string;
+  order: number;
+}
+
 const CreateUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["ADMIN", "TUTOR", "LEARNER"]),
+  gradeId: z.string().optional(),
+  gradeIds: z.array(z.string()).optional(),
 });
 
 type CreateUserForm = z.infer<typeof CreateUserSchema>;
@@ -65,10 +73,13 @@ const roleBadgeMap: Record<string, "default" | "secondary" | "outline"> = {
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedGradeIds, setSelectedGradeIds] = useState<string[]>([]);
 
   const {
     register,
@@ -97,11 +108,42 @@ export function UserManagement() {
     fetchUsers();
   }, [fetchUsers]);
 
+  useEffect(() => {
+    fetch("/api/grades")
+      .then((r) => r.json())
+      .then((j) => setGrades(j.data ?? []));
+  }, []);
+
+  const handleRoleChange = (role: string) => {
+    setSelectedRole(role);
+    setSelectedGradeIds([]);
+    setValue("role", role as "ADMIN" | "TUTOR" | "LEARNER");
+    setValue("gradeId", undefined);
+    setValue("gradeIds", undefined);
+  };
+
+  const toggleGradeId = (id: string) => {
+    setSelectedGradeIds((prev) =>
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+    );
+  };
+
   const onCreateUser = async (data: CreateUserForm) => {
+    const payload: CreateUserForm = { ...data };
+    if (selectedRole === "TUTOR") {
+      payload.gradeIds = selectedGradeIds;
+      delete payload.gradeId;
+    } else if (selectedRole === "LEARNER") {
+      delete payload.gradeIds;
+    } else {
+      delete payload.gradeId;
+      delete payload.gradeIds;
+    }
+
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -110,8 +152,19 @@ export function UserManagement() {
     }
     toast.success("User created successfully");
     setCreateOpen(false);
+    setSelectedRole("");
+    setSelectedGradeIds([]);
     reset();
     fetchUsers();
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setSelectedRole("");
+      setSelectedGradeIds([]);
+      reset();
+    }
+    setCreateOpen(open);
   };
 
   const toggleActive = async (user: User) => {
@@ -120,20 +173,14 @@ export function UserManagement() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !user.isActive }),
     });
-    if (!res.ok) {
-      toast.error("Failed to update user");
-      return;
-    }
+    if (!res.ok) { toast.error("Failed to update user"); return; }
     toast.success(`User ${user.isActive ? "deactivated" : "activated"}`);
     fetchUsers();
   };
 
   const deleteUser = async (id: string) => {
     const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      toast.error("Failed to delete user");
-      return;
-    }
+    if (!res.ok) { toast.error("Failed to delete user"); return; }
     toast.success("User deleted");
     setDeleteId(null);
     fetchUsers();
@@ -237,7 +284,7 @@ export function UserManagement() {
       />
 
       {/* Create User Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
@@ -261,7 +308,7 @@ export function UserManagement() {
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select onValueChange={(v) => setValue("role", v as "ADMIN" | "TUTOR" | "LEARNER")}>
+              <Select onValueChange={handleRoleChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -273,8 +320,55 @@ export function UserManagement() {
               </Select>
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
+
+            {/* Learner: single grade */}
+            {selectedRole === "LEARNER" && (
+              <div className="space-y-2">
+                <Label>Grade</Label>
+                <Select
+                  onValueChange={(v) => setValue("gradeId", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grades.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.gradeId && <p className="text-xs text-destructive">{errors.gradeId.message}</p>}
+              </div>
+            )}
+
+            {/* Tutor: multi-grade checkboxes */}
+            {selectedRole === "TUTOR" && (
+              <div className="space-y-2">
+                <Label>Grades (select all that apply)</Label>
+                <div className="grid grid-cols-2 gap-2 border rounded-lg p-3">
+                  {grades.map((g) => (
+                    <label
+                      key={g.id}
+                      className="flex items-center gap-2 cursor-pointer text-sm hover:text-primary"
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded border-input accent-primary"
+                        checked={selectedGradeIds.includes(g.id)}
+                        onChange={() => toggleGradeId(g.id)}
+                      />
+                      {g.label}
+                    </label>
+                  ))}
+                </div>
+                {selectedGradeIds.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Select at least one grade.</p>
+                )}
+              </div>
+            )}
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); reset(); }}>
+              <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
                 Cancel
               </Button>
               <Button type="submit" loading={isSubmitting}>
@@ -291,8 +385,7 @@ export function UserManagement() {
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. All data associated with this user will be permanently
-              removed.
+              This action cannot be undone. All data associated with this user will be permanently removed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

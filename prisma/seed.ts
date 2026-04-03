@@ -1,7 +1,16 @@
+import "dotenv/config";
 import { PrismaClient, Role, MaterialType, AssessmentType, QuestionType } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 // ─────────────────────────────────────────────
 // CAPS CURRICULUM DATA
