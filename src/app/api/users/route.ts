@@ -14,7 +14,7 @@ const CreateUserSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const { error, session } = await requireAuth([Role.ADMIN]);
+    const { error } = await requireAuth([Role.ADMIN]);
     if (error) return error;
 
     const { searchParams } = new URL(req.url);

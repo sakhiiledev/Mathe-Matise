@@ -10,7 +10,7 @@ const CreateAnnouncementSchema = z.object({
   target: z.enum(["ALL", "ADMIN", "TUTOR", "LEARNER"]).default("ALL"),
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const { error, session } = await requireAuth();
     if (error) return error;

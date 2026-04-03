@@ -44,11 +44,9 @@ interface CalendarViewProps {
 export function CalendarView({ canCreate = false, onCreateClick }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const fetchEvents = useCallback(async () => {
-    setLoading(true);
     try {
       const from = startOfMonth(currentMonth).toISOString();
       const to = endOfMonth(currentMonth).toISOString();
@@ -56,7 +54,6 @@ export function CalendarView({ canCreate = false, onCreateClick }: CalendarViewP
       const json = await res.json();
       setEvents(json.data ?? []);
     } catch { toast.error("Failed to load events"); }
-    finally { setLoading(false); }
   }, [currentMonth]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);

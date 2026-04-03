@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -38,7 +38,7 @@ interface Submission {
 }
 
 const GradeSchema = z.object({
-  score: z.coerce.number().min(0, "Score must be 0 or above"),
+  score: z.number().min(0, "Score must be 0 or above"),
   feedback: z.string().optional(),
 });
 
@@ -58,7 +58,7 @@ export function GradingCenter() {
       const res = await fetch("/api/submissions?pageSize=100");
       const json = await res.json();
       // Show only ungraded first
-      const sorted = (json.data ?? []).sort((a: Submission, b: Submission) =>
+      const sorted = (json.data ?? []).sort((a: Submission) =>
         a.score === null ? -1 : 1
       );
       setSubmissions(sorted);
@@ -194,7 +194,7 @@ export function GradingCenter() {
               <form onSubmit={handleSubmit(onGrade)} className="space-y-3">
                 <div className="space-y-2">
                   <Label>Score (out of {selected.assessment.totalMarks})</Label>
-                  <Input type="number" min={0} max={selected.assessment.totalMarks} placeholder="Enter score" {...register("score")} />
+                  <Input type="number" min={0} max={selected.assessment.totalMarks} placeholder="Enter score" {...register("score", { valueAsNumber: true })} />
                   {errors.score && <p className="text-xs text-destructive">{errors.score.message}</p>}
                 </div>
                 <div className="space-y-2">

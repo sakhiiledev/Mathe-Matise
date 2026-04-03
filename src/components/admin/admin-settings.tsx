@@ -9,11 +9,9 @@ import { Separator } from "@/components/ui/separator";
 import { GraduationCap, BookOpen, Calendar } from "lucide-react";
 
 interface Grade { id: string; label: string; order: number; subjects: { id: string; name: string }[] }
-interface AcademicYear { id: string; year: number; isCurrent: boolean; startDate: string; endDate: string }
 
 export function AdminSettings() {
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [academicYear, setAcademicYear] = useState<AcademicYear | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

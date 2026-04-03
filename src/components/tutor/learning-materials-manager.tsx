@@ -67,7 +67,7 @@ export function LearningMaterialsManager() {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } =
     useForm<FormData>({ resolver: zodResolver(Schema) });
 
   const fetchMaterials = useCallback(async () => {

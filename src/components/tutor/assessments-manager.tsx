@@ -5,13 +5,13 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreHorizontal, Eye, EyeOff, PlusCircle } from "lucide-react";
+import { Plus, Trash2, MoreHorizontal, Eye, EyeOff, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -45,7 +45,7 @@ const QuestionSchema = z.object({
   type: z.enum(["MCQ", "SHORT", "LONG"]),
   options: z.array(z.string()).optional(),
   correctAnswer: z.string().optional(),
-  marks: z.coerce.number().min(1),
+  marks: z.number().min(1),
 });
 
 const AssessmentSchema = z.object({
@@ -54,7 +54,7 @@ const AssessmentSchema = z.object({
   gradeId: z.string().min(1, "Grade required"),
   subjectId: z.string().min(1, "Subject required"),
   dueDate: z.string().optional(),
-  totalMarks: z.coerce.number().min(1, "Total marks required"),
+  totalMarks: z.number().min(1, "Total marks required"),
   questions: z.array(QuestionSchema).optional(),
 });
 
@@ -242,7 +242,7 @@ export function AssessmentsManager() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Total Marks</Label>
-                <Input type="number" min={1} placeholder="e.g. 50" {...register("totalMarks")} />
+                <Input type="number" min={1} placeholder="e.g. 50" {...register("totalMarks", { valueAsNumber: true })} />
                 {errors.totalMarks && <p className="text-xs text-destructive">{errors.totalMarks.message}</p>}
               </div>
               <div className="space-y-2">
@@ -282,7 +282,7 @@ export function AssessmentsManager() {
                         <SelectItem value="LONG">Long Answer</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Input type="number" min={1} placeholder="Marks" className="h-8 text-xs" {...register(`questions.${index}.marks`)} />
+                    <Input type="number" min={1} placeholder="Marks" className="h-8 text-xs" {...register(`questions.${index}.marks`, { valueAsNumber: true })} />
                   </div>
                   {watch(`questions.${index}.type`) === "MCQ" && (
                     <div className="space-y-1.5">

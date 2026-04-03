@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Clock, CheckCircle, BookOpen } from "lucide-react";
+import { Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";

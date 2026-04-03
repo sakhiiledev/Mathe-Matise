@@ -5,7 +5,7 @@ import { Role } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
-    const { error, session } = await requireAuth([Role.ADMIN, Role.TUTOR]);
+    const { error } = await requireAuth([Role.ADMIN, Role.TUTOR]);
     if (error) return error;
 
     const { searchParams } = new URL(req.url);

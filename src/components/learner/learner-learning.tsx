@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { FileText, Video, File, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

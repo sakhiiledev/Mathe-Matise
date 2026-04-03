@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const assessmentId = searchParams.get("assessmentId");
     const learnerId = searchParams.get("learnerId");
 
-    let where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {};
 
     if (session!.user.role === Role.LEARNER) {
       where.learnerId = session!.user.id;

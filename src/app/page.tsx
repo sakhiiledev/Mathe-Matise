@@ -15,5 +15,5 @@ export default async function Home() {
     LEARNER: "/learner",
   };
 
-  redirect(redirectMap[session.user.role] ?? "/login");
+  redirect(redirectMap[session!.user.role] ?? "/login");
 }

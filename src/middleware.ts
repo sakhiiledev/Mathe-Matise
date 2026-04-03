@@ -1,10 +1,11 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
-    const { pathname } = req.nextUrl;
+    const pathname = req.nextUrl.pathname;
 
     // Redirect authenticated users away from login page
     if (pathname === "/login" && token) {
@@ -35,7 +36,7 @@ export default withAuth(
   {
     callbacks: {
       authorized({ token, req }) {
-        const { pathname } = req.nextUrl;
+        const pathname = (req as NextRequest).nextUrl.pathname;
 
         // Public routes
         if (
@@ -43,12 +44,12 @@ export default withAuth(
           pathname === "/" ||
           pathname.startsWith("/api/auth") ||
           pathname.startsWith("/_next") ||
-          pathname.startsWith("/favicon")
+          pathname.startsWith("/favicon") ||
+          pathname === "/unauthorized"
         ) {
           return true;
         }
 
-        // All other routes require authentication
         return !!token;
       },
     },
@@ -56,7 +57,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
 };

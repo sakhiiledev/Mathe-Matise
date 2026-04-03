@@ -66,7 +66,7 @@ export function TutorOverview({ stats }: { stats: TutorStats }) {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              At Risk ({"{stats.atRisk.length}"} learners)
+              At Risk ({stats.atRisk.length} learners)
             </CardTitle>
           </CardHeader>
           <CardContent>
