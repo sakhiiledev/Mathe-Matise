@@ -1,0 +1,365 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  TUTOR
+  LEARNER
+}
+
+enum MaterialType {
+  VIDEO
+  PDF
+  DOCUMENT
+}
+
+enum AssessmentType {
+  QUIZ
+  TEST
+}
+
+enum QuestionType {
+  MCQ
+  SHORT
+  LONG
+}
+
+enum EventType {
+  CLASS
+  TEST
+  APPOINTMENT
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ALERT
+}
+
+enum AnnouncementTarget {
+  ALL
+  ADMIN
+  TUTOR
+  LEARNER
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  hashedPassword String
+  role           Role
+  avatarUrl      String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  enrollments          Enrollment[]
+  tutorAssignments     TutorAssignment[]
+  uploadedMaterials    LearningMaterial[]
+  createdAssessments   Assessment[]
+  submissions          Submission[]       @relation("LearnerSubmissions")
+  gradedSubmissions    Submission[]       @relation("GraderSubmissions")
+  createdEvents        CalendarEvent[]    @relation("EventCreator")
+  attendedEvents       EventAttendee[]
+  sentMessages         Message[]          @relation("SentMessages")
+  receivedMessages     Message[]          @relation("ReceivedMessages")
+  notifications        Notification[]
+  systemLogs           SystemLog[]
+  announcements        Announcement[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// ACADEMIC STRUCTURE
+// ─────────────────────────────────────────────
+
+model Grade {
+  id    String @id @default(cuid())
+  label String @unique
+  order Int
+
+  subjects         Subject[]
+  tutorAssignments TutorAssignment[]
+  materials        LearningMaterial[]
+  assessments      Assessment[]
+  capsTopics       CapsTopic[]
+
+  @@map("grades")
+}
+
+model Subject {
+  id      String @id @default(cuid())
+  name    String
+  gradeId String
+
+  grade            Grade              @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  enrollments      Enrollment[]
+  tutorAssignments TutorAssignment[]
+  materials        LearningMaterial[]
+  assessments      Assessment[]
+  capsTopics       CapsTopic[]
+
+  @@unique([name, gradeId])
+  @@map("subjects")
+}
+
+model CapsTopic {
+  id        String @id @default(cuid())
+  title     String
+  term      Int
+  subjectId String
+  gradeId   String
+  order     Int    @default(0)
+
+  subject   Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade     Grade              @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  materials LearningMaterial[]
+
+  @@map("caps_topics")
+}
+
+// ─────────────────────────────────────────────
+// ENROLLMENTS & ASSIGNMENTS
+// ─────────────────────────────────────────────
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  learnerId  String
+  subjectId  String
+  enrolledAt DateTime @default(now())
+
+  learner User    @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([learnerId, subjectId])
+  @@map("enrollments")
+}
+
+model TutorAssignment {
+  id        String @id @default(cuid())
+  tutorId   String
+  subjectId String
+  gradeId   String
+
+  tutor   User    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@unique([tutorId, subjectId, gradeId])
+  @@map("tutor_assignments")
+}
+
+// ─────────────────────────────────────────────
+// LEARNING MATERIALS
+// ─────────────────────────────────────────────
+
+model LearningMaterial {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String
+  type        MaterialType
+  subjectId   String
+  gradeId     String
+  capsTopicId String?
+  uploadedBy  String
+  isApproved  Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  capsTopic CapsTopic? @relation(fields: [capsTopicId], references: [id])
+  uploader  User       @relation(fields: [uploadedBy], references: [id])
+
+  @@map("learning_materials")
+}
+
+// ─────────────────────────────────────────────
+// ASSESSMENTS
+// ─────────────────────────────────────────────
+
+model Assessment {
+  id          String         @id @default(cuid())
+  title       String
+  type        AssessmentType
+  subjectId   String
+  gradeId     String
+  createdBy   String
+  dueDate     DateTime?
+  totalMarks  Int
+  isPublished Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade       Grade        @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  creator     User         @relation(fields: [createdBy], references: [id])
+  questions   Question[]
+  submissions Submission[]
+
+  @@map("assessments")
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  assessmentId  String
+  questionText  String
+  type          QuestionType
+  options       Json?
+  correctAnswer String?
+  marks         Int
+  order         Int          @default(0)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+model Submission {
+  id           String    @id @default(cuid())
+  assessmentId String
+  learnerId    String
+  answers      Json
+  score        Float?
+  gradedBy     String?
+  feedback     String?
+  submittedAt  DateTime  @default(now())
+  gradedAt     DateTime?
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  learner    User       @relation("LearnerSubmissions", fields: [learnerId], references: [id])
+  grader     User?      @relation("GraderSubmissions", fields: [gradedBy], references: [id])
+
+  @@unique([assessmentId, learnerId])
+  @@map("submissions")
+}
+
+// ─────────────────────────────────────────────
+// CALENDAR
+// ─────────────────────────────────────────────
+
+model CalendarEvent {
+  id        String    @id @default(cuid())
+  title     String
+  type      EventType
+  startTime DateTime
+  endTime   DateTime
+  notes     String?
+  createdBy String
+  createdAt DateTime  @default(now())
+
+  creator   User            @relation("EventCreator", fields: [createdBy], references: [id])
+  attendees EventAttendee[]
+
+  @@map("calendar_events")
+}
+
+model EventAttendee {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_attendees")
+}
+
+// ─────────────────────────────────────────────
+// MESSAGING
+// ─────────────────────────────────────────────
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// ANNOUNCEMENTS
+// ─────────────────────────────────────────────
+
+model Announcement {
+  id        String             @id @default(cuid())
+  title     String
+  content   String
+  target    AnnouncementTarget @default(ALL)
+  createdBy String
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+
+  author User @relation(fields: [createdBy], references: [id])
+
+  @@map("announcements")
+}
+
+// ─────────────────────────────────────────────
+// SYSTEM
+// ─────────────────────────────────────────────
+
+model SystemLog {
+  id          String   @id @default(cuid())
+  action      String
+  performedBy String
+  target      String?
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  user User @relation(fields: [performedBy], references: [id])
+
+  @@map("system_logs")
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  isCurrent Boolean  @default(false)
+  startDate DateTime
+  endDate   DateTime
+
+  @@map("academic_years")
+}
